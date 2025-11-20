@@ -1,0 +1,7 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item android:id="@+id/nav_home" android:title="Dashboard" android:icon="@android:drawable/ic_menu_compass" />
+        <item android:id="@+id/nav_devices" android:title="My Devices" android:icon="@android:drawable/ic_menu_manage" />
+        <item android:id="@+id/nav_logout" android:title="Logout" android:icon="@android:drawable/ic_lock_power_off" />
+    </group>
+</menu>

@@ -51,4 +51,14 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Firebase Authentication
+    implementation(libs.firebase.auth.ktx)
+
+    // Google Play Services (For Google Login)
+    implementation(libs.play.services.auth)
+
+    // Navigation features (already partially added, but ensure these are present)
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
 }
