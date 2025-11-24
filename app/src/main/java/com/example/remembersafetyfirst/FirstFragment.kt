@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.google.firebase.firestore.FirebaseFirestore
 import android.graphics.Color
+import com.google.firebase.auth.FirebaseAuth
 
 class FirstFragment : Fragment() {
 
@@ -52,8 +53,12 @@ class FirstFragment : Fragment() {
     }
 
     private fun updateDashboardUI() {
-        val basePath = "users/test-user-id/baseStations/test-base-id/sensors"
+        // 1. Get the current user's ID
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) return // Stop if not logged in
 
+        // 2. Use the dynamic ID in the path
+        val basePath = "users/$userId/baseStations/test-base-id/sensors"
         // Just update text/color. The Service handles the Sound/Notification now.
         db.collection(basePath).document("sensor-101").addSnapshotListener { snapshot, _ ->
             val value = snapshot?.getDouble("value")

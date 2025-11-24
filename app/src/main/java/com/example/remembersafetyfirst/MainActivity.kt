@@ -14,6 +14,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.example.remembersafetyfirst.databinding.ActivityMainBinding
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
+import android.widget.TextView
 
 class MainActivity : AppCompatActivity() {
 
@@ -34,6 +35,29 @@ class MainActivity : AppCompatActivity() {
         val navView: NavigationView = binding.navView
         val navController = findNavController(R.id.nav_host_fragment_content_main)
 
+        // ... inside onCreate() ...
+        val headerView = navView.getHeaderView(0)
+        val navUserEmail = headerView.findViewById<TextView>(R.id.tv_user_email)
+        val navUserName = headerView.findViewById<TextView>(R.id.tv_user_name)
+
+        val currentUser = FirebaseAuth.getInstance().currentUser
+
+        if (currentUser != null) {
+            navUserEmail.text = currentUser.email
+
+
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            db.collection("users").document(currentUser.uid).get()
+                .addOnSuccessListener { document ->
+                    if (document != null && document.exists()) {
+                        val name = document.getString("displayName")
+                        navUserName.text = name ?: "SafetyFirst User"
+                    }
+                }
+        } else {
+            navUserEmail.text = "Guest"
+            navUserName.text = "Guest User"
+        }
         // Setup the Hamburger Icon
         appBarConfiguration = AppBarConfiguration(
             setOf(R.id.FirstFragment), drawerLayout

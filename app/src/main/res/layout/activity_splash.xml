@@ -13,8 +13,9 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="SafetyFirst"
-        android:textSize="24sp"
+        android:text="Remember! Better Be Safe Than Sorry"
+        android:textSize="12sp"
+        android:textColor="#70DBDB"
         android:textStyle="bold"
         android:layout_below="@id/logo"
         android:layout_centerHorizontal="true"
