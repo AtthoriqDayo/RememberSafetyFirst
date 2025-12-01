@@ -1,15 +1,17 @@
 package com.example.remembersafetyfirst
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import com.google.firebase.firestore.FirebaseFirestore
-import android.graphics.Color
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class FirstFragment : Fragment() {
 
@@ -17,6 +19,12 @@ class FirstFragment : Fragment() {
     private lateinit var txtGasStatus: TextView
     private lateinit var txtFireValue: TextView
     private lateinit var txtFireStatus: TextView
+
+    // Containers
+    private lateinit var layoutEmpty: LinearLayout
+    private lateinit var layoutContent: LinearLayout
+    private lateinit var btnAddBase: Button
+
     private val db = FirebaseFirestore.getInstance()
 
     override fun onCreateView(
@@ -30,36 +38,69 @@ class FirstFragment : Fragment() {
         txtFireValue = root.findViewById(R.id.text_fire_value)
         txtFireStatus = root.findViewById(R.id.text_fire_status)
 
-        // 1. Start the Background Service (It will keep running when app closes)
-        val serviceIntent = Intent(requireContext(), SafetyService::class.java)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            requireContext().startForegroundService(serviceIntent)
-        } else {
-            requireContext().startService(serviceIntent)
+        layoutEmpty = root.findViewById(R.id.layout_empty_state)
+        layoutContent = root.findViewById(R.id.layout_content_state)
+        btnAddBase = root.findViewById(R.id.btn_add_base)
+
+        // Handle Add Base Click
+        btnAddBase.setOnClickListener {
+            val intent = Intent(requireContext(), AddDeviceActivity::class.java)
+            startActivity(intent)
         }
 
-        // 2. Update UI Text (Visual only)
-        updateDashboardUI()
+        checkIfBaseStationExists()
 
         return root
     }
 
-    // 3. STOP ALARM WHEN APP IS OPENED
+    private fun checkIfBaseStationExists() {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        // Check if the user has any documents in the 'baseStations' sub-collection
+        db.collection("users").document(userId).collection("baseStations")
+            .get()
+            .addOnSuccessListener { documents ->
+                if (documents.isEmpty) {
+                    // No devices found -> Show Empty State
+                    layoutEmpty.visibility = View.VISIBLE
+                    layoutContent.visibility = View.GONE
+                } else {
+                    // Devices found -> Show Content
+                    layoutEmpty.visibility = View.GONE
+                    layoutContent.visibility = View.VISIBLE
+
+                    // For now, we just load the test sensor.
+                    // In the future, you should loop through 'documents' to get real MAC addresses.
+                    startSensorMonitoring()
+
+                    // Start Background Service
+                    val serviceIntent = Intent(requireContext(), SafetyService::class.java)
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        requireContext().startForegroundService(serviceIntent)
+                    } else {
+                        requireContext().startService(serviceIntent)
+                    }
+                }
+            }
+    }
+
     override fun onResume() {
         super.onResume()
         val stopIntent = Intent(requireContext(), SafetyService::class.java)
         stopIntent.action = "STOP_SOUND"
         requireContext().startService(stopIntent)
+
+        // Refresh list in case user just added a device
+        checkIfBaseStationExists()
     }
 
-    private fun updateDashboardUI() {
-        // 1. Get the current user's ID
-        val userId = FirebaseAuth.getInstance().currentUser?.uid
-        if (userId == null) return // Stop if not logged in
+    private fun startSensorMonitoring() {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        // 2. Use the dynamic ID in the path
+        // NOTE: Currently hardcoded for testing.
+        // Once connected, replace 'test-base-id' with the actual document ID from the previous check.
         val basePath = "users/$userId/baseStations/test-base-id/sensors"
-        // Just update text/color. The Service handles the Sound/Notification now.
+
         db.collection(basePath).document("sensor-101").addSnapshotListener { snapshot, _ ->
             val value = snapshot?.getDouble("value")
             val status = snapshot?.getLong("status")?.toInt()
