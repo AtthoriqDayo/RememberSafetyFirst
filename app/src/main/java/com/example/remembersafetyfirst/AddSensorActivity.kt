@@ -126,15 +126,14 @@ class AddSensorActivity : AppCompatActivity() {
 
     private fun sendConfigToSensor(network: Network) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val locationLabel = etLocation.text.toString()
+        val baseLocationName = etLocation.text.toString()
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // 1. Prepare JSON - ONLY SEND BASE MAC
+                // 1. Prepare JSON
                 val jsonParam = JSONObject()
                 jsonParam.put("baseMac", baseMacAddress)
 
-                // 2. Send to ESP32
                 val url = URL(SENSOR_IP)
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
@@ -154,16 +153,34 @@ class AddSensorActivity : AppCompatActivity() {
                     while (reader.readLine().also { line = it } != null) response.append(line)
                     reader.close()
 
-                    // 3. Receive Sensor ID from ESP
+                    // 3. NEW: Parse Array of Sensors
                     val jsonResp = JSONObject(response.toString())
-                    val sensorId = jsonResp.getString("sensorId")
-                    val sensorType = jsonResp.optString("type", "generic")
 
-                    withContext(Dispatchers.Main) {
-                        updateStatus("Linked! Saving Location to App...")
-                        // 4. Save Location & ID to Firestore (Phone Internet)
-                        saveSensorToFirestore(uid, sensorId, sensorType, locationLabel)
+                    if (jsonResp.has("sensors")) {
+                        val sensorsArray = jsonResp.getJSONArray("sensors")
+
+                        withContext(Dispatchers.Main) {
+                            updateStatus("Found ${sensorsArray.length()} Sensors! Saving...")
+                        }
+
+                        // Loop through all sensors in the array
+                        for (i in 0 until sensorsArray.length()) {
+                            val sensorObj = sensorsArray.getJSONObject(i)
+                            val sId = sensorObj.getString("id")
+                            val sType = sensorObj.getString("type")
+
+                            // Combine Name: "Kitchen (Flood)", "Kitchen (Quake)"
+                            val combinedName = "$baseLocationName ($sType)"
+
+                            saveSensorToFirestore(uid, sId, sType, combinedName)
+                        }
+                    } else {
+                        // Fallback for old single sensor format (optional)
+                        val sId = jsonResp.getString("sensorId")
+                        val sType = jsonResp.optString("type", "Generic")
+                        saveSensorToFirestore(uid, sId, sType, baseLocationName)
                     }
+
                 } else {
                     throw Exception("Sensor Error: ${connection.responseCode}")
                 }

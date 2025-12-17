@@ -52,6 +52,7 @@ class BaseDetailFragment : Fragment() {
 
         if (baseMacAddress != null) {
             startRealtimeMonitoring(baseMacAddress!!)
+            listenForDeviceStatus(baseMacAddress!!)
         }
 
         btnAddSensor.setOnClickListener {
@@ -65,6 +66,33 @@ class BaseDetailFragment : Fragment() {
         }
 
         return root
+    }
+
+    private fun listenForDeviceStatus(mac: String) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val docRef = db.collection("users").document(userId).collection("baseStations").document(mac)
+
+        // Assign to the global variable so we can clean it up later
+        confirmListener = docRef.addSnapshotListener { snapshot, e ->
+            if (e != null) return@addSnapshotListener
+
+            if (snapshot != null && snapshot.exists()) {
+                // Check for the Magic Word
+                val confirm = snapshot.getString("confirmDestroy")
+
+                if (confirm == "yes") {
+                    // Prevent duplicate calls
+                    confirmListener?.remove()
+
+                    if (isAdded && context != null) {
+                        Toast.makeText(requireContext(), "Reset Confirmed by Device. Removing...", Toast.LENGTH_LONG).show()
+                    }
+
+                    // Perform the final cleanup
+                    deleteBaseDocument(userId, mac)
+                }
+            }
+        }
     }
 
     private fun startRealtimeMonitoring(mac: String) {
@@ -99,45 +127,26 @@ class BaseDetailFragment : Fragment() {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val mac = baseMacAddress ?: return
 
-        updateStatusToast("Contacting Base Station...")
-        btnRemoveBase.isEnabled = false
+        updateStatusToast("Sending Reset Command...")
+        btnRemoveBase.isEnabled = false // Prevent spamming
 
         val docRef = db.collection("users").document(userId).collection("baseStations").document(mac)
 
-        // 1. Set Listener for Confirmation "yes"
-        confirmListener = docRef.addSnapshotListener { snapshot, e ->
-            if (e != null) return@addSnapshotListener
-
-            if (snapshot != null && snapshot.exists()) {
-                val confirm = snapshot.getString("confirmDestroy")
-                if (confirm == "yes") {
-                    // STOP LISTENING to prevent double triggers
-                    confirmListener?.remove()
-
-                    // FIX: Check if fragment is attached before showing Toast
-                    if (isAdded && context != null) {
-                        Toast.makeText(requireContext(), "Device Reset Confirmed. Deleting...", Toast.LENGTH_SHORT).show()
-                    }
-
-                    // Proceed to delete
-                    deleteBaseDocument(userId, mac)
-                }
-            }
-        }
-
-        // 2. Send "RESET" Command
+        // 1. Just Send the Command
         docRef.update("command", "RESET")
             .addOnFailureListener {
+                // If we can't write, show the force delete option
                 if (isAdded) showForceDeleteOption(userId, mac)
             }
 
-        // 3. Set a Timeout (15 seconds)
+        // 2. Set a Timeout (10 seconds)
+        // If the listener doesn't trigger deleteBaseDocument() within 10s, assume device is offline
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             if (isAdded && btnRemoveBase.isEnabled == false) {
-                confirmListener?.remove()
+                // If button is still disabled, it means we haven't popped the stack yet
                 showForceDeleteOption(userId, mac)
             }
-        }, 15000)
+        }, 10000)
     }
 
     private fun showForceDeleteOption(uid: String, mac: String) {
