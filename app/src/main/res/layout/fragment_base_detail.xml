@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F0F0F0">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tv_base_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Base Station Details"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_sensors"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"
+            android:layout_marginBottom="16dp"/>
+
+        <Button
+            android:id="@+id/btn_add_new_sensor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="+ Add New Sensor"
+            android:padding="12dp"
+            android:backgroundTint="#008577"/>
+
+        <Button
+            android:id="@+id/btn_remove_base"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Remove Base Station"
+            android:padding="12dp"
+            android:layout_marginTop="24dp"
+            android:backgroundTint="#D32F2F"/> </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -69,6 +69,12 @@
             android:label="Setup Device"
             android:theme="@style/Theme.RememberSafetyFirst" />
 
+        <activity
+            android:name=".AddSensorActivity"
+            android:exported="false"
+            android:label="Add New Sensor"
+            android:theme="@style/Theme.RememberSafetyFirst" />
+
     </application>
 
 </manifest>
